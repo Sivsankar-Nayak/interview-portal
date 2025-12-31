@@ -31,6 +31,6 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}  # Your VPS username
           key: ${{ secrets.VPS_PRIVATE_KEY }}  # Your SSH private key
           port: 22  # Default SSH port
-          strip_components: 1
           source: "out/*"  # Path to the dist files
           target: ${{ secrets.VPS_APP_DIR }} # Destination on your VPS
+          strip_components: 1

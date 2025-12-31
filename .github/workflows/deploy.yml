@@ -3,34 +3,79 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - master  # Change this to your target branch
+      - master
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: '22'  # Specify your Node.js version
+          node-version: '20'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
 
-      - name: Build Project
-        run: npm run build  # This generates the dist folder
+      - name: Install dependencies (CI)
+        run: npm ci
 
-      - name: Copy Dist to VPS
+      - name: Generate TOC
+        run: npm run generate:toc
+
+      - name: Create deployment archive (exclude node_modules & .git)
+        run: |
+          TAR="site.tar.gz"
+          rm -f $TAR
+          tar --exclude='./node_modules' --exclude='./.git' --exclude='./out' -czf $TAR .
+
+      - name: Upload archive to VPS
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.VPS_IP }}  # Your VPS IP
-          username: ${{ secrets.VPS_USERNAME }}  # Your VPS username
-          key: ${{ secrets.VPS_PRIVATE_KEY }}  # Your SSH private key
-          port: 22  # Default SSH port
-          source: "out/*"  # Path to the dist files
-          target: ${{ secrets.VPS_APP_DIR }} # Destination on your VPS
-          strip_components: 1
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: 22
+          source: "site.tar.gz"
+          target: ${{ secrets.VPS_APP_DIR }}
+
+      - name: Deploy on VPS (extract, install, build, pm2 restart)
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_IP }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: 22
+          script: |
+            set -e
+            cd ${{ secrets.VPS_APP_DIR }}
+            # extract archive (overwrites files)
+            tar -xzf site.tar.gz --overwrite
+            rm -f site.tar.gz
+
+            # ensure correct Node version on server (use n or nvm if available)
+            echo "Deploying to $(pwd) on $(hostname)"
+
+            # install full deps and build
+            npm ci --production=false
+            npm run build
+
+            # ensure pm2 exists and restart the app
+            if ! command -v pm2 >/dev/null 2>&1; then
+              npm i -g pm2
+            fi
+
+            # Prefer ecosystem config if present, fallback to named pm2 restart
+            if [ -f ecosystem.config.js ]; then
+              pm2 startOrRestart ecosystem.config.js --env production
+            else
+              pm2 restart interview-portal || pm2 start npm --name "interview-portal" -- start
+            fi

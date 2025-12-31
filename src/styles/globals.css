@@ -1,0 +1,69 @@
+@import "highlight.js/styles/atom-one-dark.css";
+
+/* code block appearance (leave the imported theme to style tokens) */
+.prose pre {
+  background: var(--code-bg, #0b1220);
+  color: var(--code-color, #e6edf3);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+    "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* inline code */
+.prose code {
+  /* unchanged */
+}
+
+/* numbering + spacing for question headings */
+.prose {
+  counter-reset: question;
+}
+
+.prose h3 {
+  counter-increment: question;
+  position: relative;
+  padding-left: 3rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.75rem; /* slightly larger gap */
+  scroll-margin-top: 4rem; /* adjust to your header height */
+}
+
+/* number badge */
+.prose h3::before {
+  content: counter(question) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+  color: #0f172a; /* light-mode color */
+  transform: translateY(0.05em);
+}
+
+/* dark mode counter color */
+.dark .prose h3::before {
+  color: #cbd5e1; /* light text in dark mode */
+}
+
+/* spacing between question heading and answer */
+.prose h3 + p,
+.prose h3 + div,
+.prose h3 + details {
+  margin-top: 0.75rem;
+}
+
+/* paragraphs spacing */
+.prose p {
+  margin-bottom: 1rem;
+}
+
+/* smooth scroll */
+html {
+  scroll-behavior: smooth;
+}

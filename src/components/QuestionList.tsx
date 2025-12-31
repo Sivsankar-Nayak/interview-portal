@@ -52,7 +52,7 @@ export default function QuestionList({
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="toc">
           <AccordionTrigger className="text-left text-lg font-medium">
-            Table of contents
+            Table of content
           </AccordionTrigger>
           <AccordionContent className="prose max-w-none">
             <ul>
